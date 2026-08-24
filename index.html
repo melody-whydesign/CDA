@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0a1a44" />
+  <title>Phase Shift — Op Art Pattern Generator</title>
+  <style>
+    :root {
+      --bg: #0a1a44;
+      --ink: #1f3668;
+      --panel: rgba(255,255,255,.92);
+      --panelText: #121826;
+      --muted: #687083;
+      --border: rgba(18,24,38,.12);
+      --shadow: 0 20px 60px rgba(0,0,0,.18);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: #ececf0;
+      color: var(--panelText);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+    }
+
+    button, input { font: inherit; }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) 1fr;
+    }
+
+    .panel {
+      position: relative;
+      z-index: 2;
+      padding: 24px;
+      overflow: auto;
+      background: #f7f7f8;
+      border-right: 1px solid #dddde2;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: var(--bg);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+    }
+
+    .brand-mark::before {
+      content: "";
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 5px dashed var(--ink);
+      transform: rotate(18deg);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 19px;
+      line-height: 1.1;
+      letter-spacing: -.02em;
+    }
+
+    .subtitle {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .section {
+      padding: 18px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .section:first-of-type { border-top: 0; padding-top: 0; }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .11em;
+      color: #555e70;
+    }
+
+    .control {
+      display: grid;
+      gap: 8px;
+      margin: 0 0 16px;
+    }
+
+    .control:last-child { margin-bottom: 0; }
+
+    .control-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .value {
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 4px;
+      appearance: none;
+      border-radius: 999px;
+      background: #d9dbe2;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      background: #111827;
+      border: 3px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: #111827;
+      border: 3px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding: 5px;
+      background: #e9eaf0;
+      border-radius: 13px;
+    }
+
+    .segmented button {
+      border: 0;
+      padding: 9px 6px;
+      border-radius: 9px;
+      background: transparent;
+      color: #5d6576;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: .18s ease;
+    }
+
+    .segmented button:hover { color: #202638; }
+
+    .segmented button[aria-pressed="true"] {
+      background: #fff;
+      color: #121826;
+      box-shadow: 0 1px 5px rgba(18,24,38,.12);
+    }
+
+    .palette-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 9px;
+    }
+
+    .palette {
+      display: flex;
+      gap: 0;
+      min-height: 44px;
+      padding: 0;
+      overflow: hidden;
+      border: 2px solid transparent;
+      border-radius: 12px;
+      background: #fff;
+      cursor: pointer;
+      transition: .18s ease;
+    }
+
+    .palette:hover { transform: translateY(-1px); }
+
+    .palette[aria-pressed="true"] {
+      border-color: #111827;
+      box-shadow: 0 0 0 2px #fff inset;
+    }
+
+    .swatch {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin-top: 6px;
+    }
+
+    .btn {
+      border: 1px solid #d4d6dd;
+      border-radius: 12px;
+      background: #fff;
+      color: #171c29;
+      min-height: 42px;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-weight: 750;
+      cursor: pointer;
+      transition: .18s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 5px 14px rgba(0,0,0,.08);
+    }
+
+    .btn.primary {
+      background: #111827;
+      border-color: #111827;
+      color: #fff;
+    }
+
+    .stage {
+      position: relative;
+      min-width: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background: #d8d8dc;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      width: min(92%, 1180px);
+      aspect-ratio: 4 / 3;
+      max-height: 92vh;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      background: var(--bg);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+    }
+
+    .badge {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      padding: 7px 9px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 999px;
+      background: rgba(0,0,0,.18);
+      color: rgba(255,255,255,.78);
+      backdrop-filter: blur(8px);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+
+    .microcopy {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 820px) {
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto minmax(56vh, 1fr);
+      }
+      .panel {
+        border-right: 0;
+        border-bottom: 1px solid #dddde2;
+      }
+      .stage {
+        min-height: 62vh;
+        padding: 20px 0;
+      }
+      .canvas-wrap {
+        width: 92%;
+        max-height: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app">
+    <aside class="panel">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div>
+          <h1>Phase Shift</h1>
+          <p class="subtitle">Op-art line displacement generator</p>
+        </div>
+      </div>
+
+      <section class="section">
+        <p class="section-title">Pattern</p>
+
+        <div class="control">
+          <div class="control-head">
+            <label for="density">Density</label>
+            <output class="value" id="densityValue">34</output>
+          </div>
+          <input id="density" type="range" min="8" max="90" value="34" step="1" />
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <label for="layers">Layers</label>
+            <output class="value" id="layersValue">2</output>
+          </div>
+          <input id="layers" type="range" min="1" max="8" value="2" step="1" />
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <label for="displacement">Stroke displacement</label>
+            <output class="value" id="displacementValue">42%</output>
+          </div>
+          <input id="displacement" type="range" min="0" max="100" value="42" step="1" />
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <label for="thickness">Stroke thickness</label>
+            <output class="value" id="thicknessValue">12 px</output>
+          </div>
+          <input id="thickness" type="range" min="2" max="34" value="12" step="1" />
+        </div>
+      </section>
+
+      <section class="section">
+        <p class="section-title">Direction</p>
+        <div class="segmented" id="orientation" role="group" aria-label="Pattern direction">
+          <button type="button" data-mode="horizontal" aria-pressed="true">Horizontal</button>
+          <button type="button" data-mode="vertical" aria-pressed="false">Vertical</button>
+          <button type="button" data-mode="radial" aria-pressed="false">Radial</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <p class="section-title">Colour pair</p>
+        <div class="palette-grid" id="palettes">
+          <button class="palette" type="button" data-bg="#0a1a44" data-ink="#1f3668" aria-label="Navy blue pair" aria-pressed="true">
+            <span class="swatch" style="background:#0a1a44"></span>
+            <span class="swatch" style="background:#1f3668"></span>
+          </button>
+          <button class="palette" type="button" data-bg="#491123" data-ink="#561e35" aria-label="Burgundy pair" aria-pressed="false">
+            <span class="swatch" style="background:#491123"></span>
+            <span class="swatch" style="background:#561e35"></span>
+          </button>
+          <button class="palette" type="button" data-bg="#1a3b40" data-ink="#204d51" aria-label="Deep teal pair" aria-pressed="false">
+            <span class="swatch" style="background:#1a3b40"></span>
+            <span class="swatch" style="background:#204d51"></span>
+          </button>
+          <button class="palette" type="button" data-bg="#2c183d" data-ink="#3a2254" aria-label="Purple pair" aria-pressed="false">
+            <span class="swatch" style="background:#2c183d"></span>
+            <span class="swatch" style="background:#3a2254"></span>
+          </button>
+        </div>
+      </section>
+
+      <section class="section">
+        <p class="section-title">Output</p>
+        <div class="actions">
+          <button class="btn" id="shuffleBtn" type="button">New phase</button>
+          <button class="btn primary" id="downloadBtn" type="button">Download PNG</button>
+        </div>
+        <p class="microcopy">
+          Every layer contains one thick stroke and one thin companion stroke.
+          All rendering is generated in your browser — no libraries or server required.
+        </p>
+      </section>
+    </aside>
+
+    <section class="stage">
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="art" aria-label="Generated op-art pattern"></canvas>
+        <div class="badge" id="modeBadge">Horizontal · 2 layers</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('art');
+      const wrap = document.getElementById('canvasWrap');
+      const ctx = canvas.getContext('2d');
+
+      const controls = {
+        density: document.getElementById('density'),
+        layers: document.getElementById('layers'),
+        displacement: document.getElementById('displacement'),
+        thickness: document.getElementById('thickness')
+      };
+
+      const outputs = {
+        density: document.getElementById('densityValue'),
+        layers: document.getElementById('layersValue'),
+        displacement: document.getElementById('displacementValue'),
+        thickness: document.getElementById('thicknessValue')
+      };
+
+      const badge = document.getElementById('modeBadge');
+
+      const state = {
+        density: 34,
+        layers: 2,
+        displacement: 42,
+        thickness: 12,
+        orientation: 'horizontal',
+        bg: '#0a1a44',
+        ink: '#1f3668',
+        phase: 1.85
+      };
+
+      const TAU = Math.PI * 2;
+      const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+      function resizeCanvas() {
+        const rect = wrap.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.max(1, Math.round(rect.width * dpr));
+        canvas.height = Math.max(1, Math.round(rect.height * dpr));
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        render();
+      }
+
+      function updateUI() {
+        outputs.density.textContent = state.density;
+        outputs.layers.textContent = state.layers;
+        outputs.displacement.textContent = `${state.displacement}%`;
+        outputs.thickness.textContent = `${state.thickness} px`;
+
+        const label = state.orientation[0].toUpperCase() + state.orientation.slice(1);
+        badge.textContent = `${label} · ${state.layers} layer${state.layers === 1 ? '' : 's'}`;
+
+        document.documentElement.style.setProperty('--bg', state.bg);
+        document.documentElement.style.setProperty('--ink', state.ink);
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', state.bg);
+      }
+
+      function setStrokeStyle(width, alpha = 1) {
+        ctx.strokeStyle = state.ink;
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = width;
+        ctx.lineCap = 'butt';
+        ctx.lineJoin = 'miter';
+      }
+
+      function drawDisplacedSegment(x1, y1, x2, y2, split, offsetX, offsetY, width, alpha = 1) {
+        const sx = x1 + (x2 - x1) * split;
+        const sy = y1 + (y2 - y1) * split;
+
+        setStrokeStyle(width, alpha);
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(sx + offsetX, sy + offsetY);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(sx - offsetX, sy - offsetY);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+
+      function drawLinear(horizontal, w, h) {
+        const count = state.density;
+        const layers = state.layers;
+        const thick = state.thickness;
+        const thin = Math.max(1, thick * 0.18);
+        const margin = Math.max(22, Math.min(w, h) * 0.06);
+        const longStart = margin;
+        const longEnd = (horizontal ? w : h) - margin;
+        const crossStart = margin;
+        const crossEnd = (horizontal ? h : w) - margin;
+        const crossSpan = crossEnd - crossStart;
+        const step = count > 1 ? crossSpan / (count - 1) : crossSpan;
+        const maxDisp = step * 0.82 * (state.displacement / 100);
+        const pairGap = Math.max(2.2, thick * 0.7);
+
+        for (let layer = 0; layer < layers; layer++) {
+          const layerPhase = state.phase + layer * 1.47;
+          const layerAlpha = clamp(1 - layer * 0.08, 0.56, 1);
+
+          for (let i = 0; i < count; i++) {
+            const t = count <= 1 ? 0.5 : i / (count - 1);
+            const wobble = Math.sin(t * TAU * 1.35 + layerPhase) * 0.62
+                         + Math.sin(t * TAU * 3.1 - layerPhase * .7) * 0.22;
+            const displacement = wobble * maxDisp;
+
+            const split = clamp(
+              0.5
+              + Math.sin(t * TAU * 1.75 + layerPhase * .8) * (state.displacement / 100) * 0.13,
+              0.23,
+              0.77
+            );
+
+            const baseCross = crossStart + i * step;
+            const layerDrift = (layer - (layers - 1) / 2) * Math.max(0.7, thick * 0.18);
+            const c1 = baseCross + layerDrift;
+            const c2 = c1 + pairGap;
+
+            if (horizontal) {
+              drawDisplacedSegment(
+                longStart, c1, longEnd, c1,
+                split, 0, displacement,
+                thick, layerAlpha
+              );
+              drawDisplacedSegment(
+                longStart, c2, longEnd, c2,
+                1 - split, 0, -displacement * .72,
+                thin, layerAlpha
+              );
+            } else {
+              drawDisplacedSegment(
+                c1, longStart, c1, longEnd,
+                split, displacement, 0,
+                thick, layerAlpha
+              );
+              drawDisplacedSegment(
+                c2, longStart, c2, longEnd,
+                1 - split, -displacement * .72, 0,
+                thin, layerAlpha
+              );
+            }
+          }
+        }
+      }
+
+      function polygon(points, fill, alpha = 1) {
+        if (!points.length) return;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = fill;
+        ctx.beginPath();
+        ctx.moveTo(points[0][0], points[0][1]);
+        for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      function polar(cx, cy, r, a) {
+        return [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
+      }
+
+      function drawRadial(w, h) {
+        const count = state.density;
+        const layers = state.layers;
+        const cx = w / 2;
+        const cy = h / 2;
+
+        const outerBase = Math.min(w, h) * 0.43;
+        const innerBase = Math.min(w, h) * 0.13;
+        const displacementScale = state.displacement / 100;
+        const thick = state.thickness;
+        const thin = Math.max(1, thick * .18);
+        const angularStep = TAU / count;
+
+        for (let layer = 0; layer < layers; layer++) {
+          const layerPhase = state.phase + layer * 1.19;
+          const layerAlpha = clamp(1 - layer * .085, .55, 1);
+
+          for (let i = 0; i < count; i++) {
+            const a = i * angularStep - Math.PI / 2;
+            const waveA = Math.sin(i * .71 + layerPhase);
+            const waveB = Math.sin(i * 1.93 - layerPhase * .65);
+
+            const angleShift = (waveA * .65 + waveB * .2) * angularStep * .52 * displacementScale;
+            const angleOuter = a + angleShift;
+            const angleInner = a - angleShift * .56;
+
+            const inner = innerBase * (1 + waveB * .08 * displacementScale)
+                        + layer * Math.max(1.2, thick * .16);
+            const outer = outerBase * (1 + waveA * .08 * displacementScale);
+
+            const variableWidth = thick * (1 + (.38 * waveB * displacementScale));
+            const halfOuter = Math.min(angularStep * .37, variableWidth / Math.max(outer, 1));
+            const halfInner = Math.min(angularStep * .20, (variableWidth * .34) / Math.max(inner, 1));
+
+            polygon([
+              polar(cx, cy, inner, angleInner - halfInner),
+              polar(cx, cy, outer, angleOuter - halfOuter),
+              polar(cx, cy, outer, angleOuter + halfOuter),
+              polar(cx, cy, inner, angleInner + halfInner)
+            ], state.ink, layerAlpha);
+
+            // Thin companion stroke: one thick + one thin = one layer.
+            const thinAngle = a + angularStep * .18 + angleShift * .45;
+            setStrokeStyle(thin, layerAlpha);
+            ctx.beginPath();
+            const p1 = polar(cx, cy, inner * .94, thinAngle - angleShift * .25);
+            const p2 = polar(cx, cy, outer * 1.01, thinAngle + angleShift * .45);
+            ctx.moveTo(p1[0], p1[1]);
+            ctx.lineTo(p2[0], p2[1]);
+            ctx.stroke();
+          }
+        }
+      }
+
+      function render() {
+        const rect = wrap.getBoundingClientRect();
+        const w = rect.width;
+        const h = rect.height;
+
+        ctx.save();
+        ctx.setTransform(ctx.getTransform().a, 0, 0, ctx.getTransform().d, 0, 0);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = state.bg;
+        ctx.fillRect(0, 0, w, h);
+
+        if (state.orientation === 'horizontal') {
+          drawLinear(true, w, h);
+        } else if (state.orientation === 'vertical') {
+          drawLinear(false, w, h);
+        } else {
+          drawRadial(w, h);
+        }
+
+        ctx.restore();
+        ctx.globalAlpha = 1;
+      }
+
+      function bindRange(key, parser = Number) {
+        controls[key].addEventListener('input', (event) => {
+          state[key] = parser(event.target.value);
+          updateUI();
+          render();
+        });
+      }
+
+      bindRange('density');
+      bindRange('layers');
+      bindRange('displacement');
+      bindRange('thickness');
+
+      document.getElementById('orientation').addEventListener('click', (event) => {
+        const btn = event.target.closest('button[data-mode]');
+        if (!btn) return;
+
+        state.orientation = btn.dataset.mode;
+        document.querySelectorAll('#orientation button').forEach((button) => {
+          button.setAttribute('aria-pressed', button === btn ? 'true' : 'false');
+        });
+
+        updateUI();
+        render();
+      });
+
+      document.getElementById('palettes').addEventListener('click', (event) => {
+        const btn = event.target.closest('.palette');
+        if (!btn) return;
+
+        state.bg = btn.dataset.bg;
+        state.ink = btn.dataset.ink;
+
+        document.querySelectorAll('.palette').forEach((button) => {
+          button.setAttribute('aria-pressed', button === btn ? 'true' : 'false');
+        });
+
+        updateUI();
+        render();
+      });
+
+      document.getElementById('shuffleBtn').addEventListener('click', () => {
+        state.phase = Math.random() * TAU;
+        render();
+      });
+
+      document.getElementById('downloadBtn').addEventListener('click', () => {
+        // Export at the current on-screen resolution.
+        const link = document.createElement('a');
+        link.download = `phase-shift-${state.orientation}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+
+      const ro = new ResizeObserver(resizeCanvas);
+      ro.observe(wrap);
+
+      updateUI();
+      resizeCanvas();
+    })();
+  </script>
+</body>
+</html>
