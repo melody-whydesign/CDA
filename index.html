@@ -1,0 +1,1750 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0a1a44" />
+  <title>CDA Graphic — Op Art Pattern Generator</title>
+  <style>
+    :root {
+      --bg: #0a1a44;
+      --ink: #1f3668;
+      --panelText: #121826;
+      --shadow: 0 20px 60px rgba(0,0,0,.18);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: #ececf0;
+      color: var(--panelText);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, input { font: inherit; }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(300px, 390px) 1fr;
+    }
+
+    .panel {
+      position: relative;
+      z-index: 2;
+      padding: 24px;
+      overflow: auto;
+      background: #f7f7f8;
+      border-right: 1px solid #dddde2;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: var(--bg);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+    }
+
+    .brand-mark::before {
+      content: "";
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 5px dashed var(--ink);
+      transform: rotate(18deg);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 19px;
+      line-height: 1.1;
+      letter-spacing: -.02em;
+    }
+
+    .subtitle {
+      margin: 4px 0 0;
+      color: #687083;
+      font-size: 12px;
+    }
+
+    .section { padding: 16px 0; }
+
+    .section-title {
+      margin: 0 0 12px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .11em;
+      color: #555e70;
+    }
+
+    .control {
+      display: grid;
+      gap: 8px;
+      margin: 0 0 14px;
+    }
+
+    .control:last-child { margin-bottom: 0; }
+
+    .control-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .value {
+      color: #687083;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 4px;
+      appearance: none;
+      border-radius: 999px;
+      background: #d9dbe2;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      background: #111827;
+      border: 3px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: #111827;
+      border: 3px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    }
+
+    .segmented {
+      display: grid;
+      gap: 6px;
+      padding: 5px;
+      background: #e9eaf0;
+      border-radius: 13px;
+    }
+
+    .segmented.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .segmented.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+    .segmented button,
+    .speed-buttons button {
+      border: 0;
+      padding: 9px 6px;
+      border-radius: 9px;
+      background: transparent;
+      color: #5d6576;
+      font-size: 12px;
+      font-weight: 750;
+      cursor: pointer;
+      transition: .18s ease;
+      min-width: 0;
+    }
+
+    .segmented button:hover,
+    .speed-buttons button:hover {
+      color: #202638;
+    }
+
+    .segmented button[aria-pressed="true"],
+    .speed-buttons button[aria-pressed="true"] {
+      background: #fff;
+      color: #121826;
+      box-shadow: 0 1px 5px rgba(18,24,38,.12);
+    }
+
+    .palette-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 9px;
+    }
+
+    .palette {
+      display: flex;
+      min-height: 44px;
+      padding: 0;
+      overflow: hidden;
+      border: 2px solid transparent;
+      border-radius: 12px;
+      background: #fff;
+      cursor: pointer;
+      transition: .18s ease;
+    }
+
+    .palette:hover { transform: translateY(-1px); }
+
+    .palette[aria-pressed="true"] {
+      border-color: #111827;
+      box-shadow: 0 0 0 2px #fff inset;
+    }
+
+    .swatch {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .btn {
+      border: 1px solid #d4d6dd;
+      border-radius: 12px;
+      background: #fff;
+      color: #171c29;
+      min-height: 42px;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-weight: 750;
+      cursor: pointer;
+      transition: .18s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 5px 14px rgba(0,0,0,.08);
+    }
+
+    .btn.primary {
+      background: #111827;
+      border-color: #111827;
+      color: #fff;
+    }
+
+    .btn.small {
+      min-height: 36px;
+      padding: 8px 10px;
+      font-size: 11px;
+    }
+
+    .btn.wide { width: 100%; }
+
+    .animation-row {
+      display: grid;
+      grid-template-columns: 1fr 44px;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .speed-buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      padding: 5px;
+      background: #e9eaf0;
+      border-radius: 13px;
+    }
+
+    .icon-button {
+      width: 44px;
+      min-height: 44px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 1px solid #d4d6dd;
+      border-radius: 12px;
+      background: #111827;
+      color: #fff;
+      cursor: pointer;
+      transition: .18s ease;
+    }
+
+    .icon-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 5px 14px rgba(0,0,0,.10);
+    }
+
+    .icon-button svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+      fill: currentColor;
+    }
+
+    .icon-button .stop-icon { display: none; }
+    .icon-button[aria-pressed="true"] .play-icon { display: none; }
+    .icon-button[aria-pressed="true"] .stop-icon { display: block; }
+
+    .upload-row,
+    .audio-row {
+      display: grid;
+      gap: 8px;
+    }
+
+    .filename,
+    .status {
+      font-size: 11px;
+      color: #687083;
+      word-break: break-all;
+    }
+
+    .source-panel { display: none; margin-top: 10px; }
+    .source-panel.active { display: block; }
+
+    .sketch-wrap {
+      border: 1px solid #d4d6dd;
+      border-radius: 14px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .sketch-toolbar {
+      display: flex;
+      gap: 8px;
+      padding: 10px;
+      border-top: 1px solid #ececf0;
+      background: #fafafb;
+    }
+
+    .sketch-canvas {
+      display: block;
+      width: 100%;
+      height: 210px;
+      background: #fff;
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin-top: 6px;
+    }
+
+    .stage {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      min-width: 0;
+      height: 100vh;
+      display: grid;
+      place-items: start center;
+      padding: 24px 0;
+      overflow: hidden;
+      background: #d8d8dc;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      width: min(92%, 1180px, calc((100vh - 48px) * 4 / 3));
+      aspect-ratio: 4 / 3;
+      max-height: calc(100vh - 48px);
+      overflow: hidden;
+      border-radius: var(--radius);
+      background: var(--bg);
+      box-shadow: var(--shadow);
+    }
+
+    canvas.preview {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+    }
+
+    .badge {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      padding: 7px 9px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 999px;
+      background: rgba(0,0,0,.18);
+      color: rgba(255,255,255,.78);
+      backdrop-filter: blur(8px);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+
+    @media (max-width: 860px) {
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto minmax(56vh, 1fr);
+      }
+
+      .panel {
+        border-right: 0;
+        border-bottom: 1px solid #dddde2;
+      }
+
+      .stage {
+        position: relative;
+        top: auto;
+        height: auto;
+        min-height: 62vh;
+        padding: 20px 0;
+      }
+
+      .canvas-wrap {
+        width: 92%;
+        max-height: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside class="panel">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div>
+          <h1>CDA Graphic</h1>
+          <p class="subtitle">Op-art line displacement generator</p>
+        </div>
+      </div>
+
+      <section class="section">
+        <p class="section-title">Source</p>
+
+        <div class="segmented cols-4" id="sourceMode" role="group" aria-label="Source mode">
+          <button type="button" data-source="none" aria-pressed="true">Pattern</button>
+          <button type="button" data-source="image" aria-pressed="false">Image</button>
+          <button type="button" data-source="sketch" aria-pressed="false">Sketch</button>
+          <button type="button" data-source="audio" aria-pressed="false">Audio</button>
+        </div>
+
+        <div class="source-panel" id="imagePanel">
+          <div class="upload-row">
+            <button class="btn wide" id="uploadBtn" type="button">Upload image</button>
+            <input id="fileInput" type="file" accept="image/*" hidden />
+            <div class="filename" id="fileName">No image selected</div>
+          </div>
+        </div>
+
+        <div class="source-panel" id="sketchPanel">
+          <div class="sketch-wrap">
+            <canvas class="sketch-canvas" id="sketchCanvas" width="320" height="210"></canvas>
+            <div class="sketch-toolbar">
+              <button class="btn small" id="clearSketchBtn" type="button">Clear sketch</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="source-panel" id="audioPanel">
+          <div class="audio-row">
+            <button class="btn primary" id="recordBtn" type="button">Record</button>
+            <button class="btn" id="uploadAudioBtn" type="button">Upload audio file</button>
+            <input id="audioFileInput" type="file" accept="audio/*" hidden />
+            <button class="btn" id="clearAudioBtn" type="button">Clear recording</button>
+            <div class="status" id="audioStatus">Microphone permission will be requested when you press record. Audio now changes the thin/thick intersection across the default full pattern.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <p class="section-title">Pattern</p>
+
+        <div class="control">
+          <div class="control-head">
+            <label for="density">Density / line gap</label>
+            <output class="value" id="densityValue">14 px</output>
+          </div>
+          <input id="density" type="range" min="4" max="48" value="14" step="1" />
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <label for="layers">Pattern groups / layers</label>
+            <output class="value" id="layersValue">1</output>
+          </div>
+          <input id="layers" type="range" min="1" max="6" value="1" step="1" />
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <label for="displacement">Stroke displacement</label>
+            <output class="value" id="displacementValue">30%</output>
+          </div>
+          <input id="displacement" type="range" min="0" max="100" value="30" step="1" />
+        </div>
+      </section>
+
+      <section class="section">
+        <p class="section-title">Stroke thickness</p>
+
+        <div class="control">
+          <div class="control-head">
+            <label for="thickThickness">Thick stroke</label>
+            <output class="value" id="thickThicknessValue">14 px</output>
+          </div>
+          <input id="thickThickness" type="range" min="2" max="40" value="14" step="1" />
+        </div>
+
+        <div class="control">
+          <div class="control-head">
+            <label for="thinThickness">Thin stroke</label>
+            <output class="value" id="thinThicknessValue">3 px</output>
+          </div>
+          <input id="thinThickness" type="range" min="1" max="24" value="3" step="1" />
+        </div>
+
+        <button class="btn wide" id="swapBtn" type="button">Swap thin ↔ thick positions</button>
+      </section>
+
+      <section class="section">
+        <p class="section-title">Animation</p>
+
+        <div class="animation-row">
+          <div class="speed-buttons" id="speedButtons" role="group" aria-label="Animation speed">
+            <button type="button" data-speed="0.5" aria-pressed="true">0.5×</button>
+            <button type="button" data-speed="1" aria-pressed="false">1×</button>
+            <button type="button" data-speed="2" aria-pressed="false">2×</button>
+            <button type="button" data-speed="3" aria-pressed="false">3×</button>
+          </div>
+
+          <button class="icon-button" id="animateBtn" type="button" aria-pressed="false" aria-label="Play animation" title="Play animation">
+            <svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 5.5v13l10-6.5z"></path>
+            </svg>
+            <svg class="stop-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="6.5" y="6.5" width="11" height="11" rx="1"></rect>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <section class="section">
+        <p class="section-title">Direction</p>
+
+        <div class="segmented cols-3" id="orientation" role="group" aria-label="Pattern direction">
+          <button type="button" data-mode="horizontal" aria-pressed="true">Horizontal</button>
+          <button type="button" data-mode="vertical" aria-pressed="false">Vertical</button>
+          <button type="button" data-mode="radial" aria-pressed="false">Radial</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <p class="section-title">Colour pair</p>
+
+        <div class="palette-grid" id="palettes">
+          <button class="palette" type="button" data-bg="#0a1a44" data-ink="#1f3668" aria-pressed="true"><span class="swatch" style="background:#0a1a44"></span><span class="swatch" style="background:#1f3668"></span></button>
+          <button class="palette" type="button" data-bg="#491123" data-ink="#561e35" aria-pressed="false"><span class="swatch" style="background:#491123"></span><span class="swatch" style="background:#561e35"></span></button>
+          <button class="palette" type="button" data-bg="#1a3b40" data-ink="#204d51" aria-pressed="false"><span class="swatch" style="background:#1a3b40"></span><span class="swatch" style="background:#204d51"></span></button>
+          <button class="palette" type="button" data-bg="#2c183d" data-ink="#3a2254" aria-pressed="false"><span class="swatch" style="background:#2c183d"></span><span class="swatch" style="background:#3a2254"></span></button>
+          <button class="palette" type="button" data-bg="#2456d8" data-ink="#ffffff" aria-pressed="false"><span class="swatch" style="background:#2456d8"></span><span class="swatch" style="background:#ffffff"></span></button>
+          <button class="palette" type="button" data-bg="#e75f34" data-ink="#f5efe8" aria-pressed="false"><span class="swatch" style="background:#e75f34"></span><span class="swatch" style="background:#f5efe8"></span></button>
+          <button class="palette" type="button" data-bg="#bfeb6e" data-ink="#1a3b40" aria-pressed="false"><span class="swatch" style="background:#bfeb6e"></span><span class="swatch" style="background:#1a3b40"></span></button>
+          <button class="palette" type="button" data-bg="#c8b9e8" data-ink="#2c183d" aria-pressed="false"><span class="swatch" style="background:#c8b9e8"></span><span class="swatch" style="background:#2c183d"></span></button>
+        </div>
+      </section>
+
+      <section class="section">
+        <p class="section-title">Output</p>
+
+        <div class="actions">
+          <button class="btn wide" id="resetBtn" type="button">Reset</button>
+          <button class="btn primary" id="downloadPngBtn" type="button">Download PNG</button>
+          <button class="btn primary" id="downloadSvgBtn" type="button">Download SVG</button>
+        </div>
+      </section>
+    </aside>
+
+    <section class="stage">
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas class="preview" id="art" aria-label="Generated op-art pattern"></canvas>
+        <div class="badge" id="modeBadge">Horizontal · Pattern</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('art');
+      const wrap = document.getElementById('canvasWrap');
+      const ctx = canvas.getContext('2d');
+
+      const controls = {
+        density: document.getElementById('density'),
+        layers: document.getElementById('layers'),
+        displacement: document.getElementById('displacement'),
+        thickThickness: document.getElementById('thickThickness'),
+        thinThickness: document.getElementById('thinThickness')
+      };
+
+      const outputs = {
+        density: document.getElementById('densityValue'),
+        layers: document.getElementById('layersValue'),
+        displacement: document.getElementById('displacementValue'),
+        thickThickness: document.getElementById('thickThicknessValue'),
+        thinThickness: document.getElementById('thinThicknessValue')
+      };
+
+      const badge = document.getElementById('modeBadge');
+      const animateBtn = document.getElementById('animateBtn');
+      const speedButtons = document.getElementById('speedButtons');
+      const sourceModeGroup = document.getElementById('sourceMode');
+      const imagePanel = document.getElementById('imagePanel');
+      const sketchPanel = document.getElementById('sketchPanel');
+      const audioPanel = document.getElementById('audioPanel');
+      const uploadBtn = document.getElementById('uploadBtn');
+      const fileInput = document.getElementById('fileInput');
+      const fileName = document.getElementById('fileName');
+      const sketchCanvas = document.getElementById('sketchCanvas');
+      const sketchCtx = sketchCanvas.getContext('2d');
+      const clearSketchBtn = document.getElementById('clearSketchBtn');
+      const recordBtn = document.getElementById('recordBtn');
+      const uploadAudioBtn = document.getElementById('uploadAudioBtn');
+      const audioFileInput = document.getElementById('audioFileInput');
+      const clearAudioBtn = document.getElementById('clearAudioBtn');
+      const audioStatus = document.getElementById('audioStatus');
+
+      const TAU = Math.PI * 2;
+
+      const defaults = {
+        sourceMode: 'none',
+        density: 14,
+        layers: 1,
+        displacement: 30,
+        thickThickness: 14,
+        thinThickness: 3,
+        orientation: 'horizontal',
+        bg: '#0a1a44',
+        ink: '#1f3668',
+        swapped: false,
+        animationSpeed: 0.5,
+        animating: false
+      };
+
+      const state = { ...defaults };
+
+      let logicalWidth = 1;
+      let logicalHeight = 1;
+      let dpr = 1;
+      let animationFrameId = null;
+      let animationPhase = 0;
+      let lastAnimationTime = null;
+
+      let uploadedImage = null;
+      let uploadedFileName = 'No image selected';
+
+      let drawing = false;
+      let lastX = 0;
+      let lastY = 0;
+
+      let mediaRecorder = null;
+      let mediaStream = null;
+      let audioChunks = [];
+      let audioSamples = null;
+      let audioIsRecording = false;
+
+      const maskCanvas = document.createElement('canvas');
+      const maskCtx = maskCanvas.getContext('2d');
+
+      const patternCanvas = document.createElement('canvas');
+      const patternCtx = patternCanvas.getContext('2d');
+
+      function fmt(n) {
+        return Number(n.toFixed(3));
+      }
+
+      function rectangleCorners(x1, y1, x2, y2, width) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const length = Math.hypot(dx, dy) || 1;
+        const px = -dy / length;
+        const py = dx / length;
+        const half = width / 2;
+
+        return [
+          [x1 + px * half, y1 + py * half],
+          [x2 + px * half, y2 + py * half],
+          [x2 - px * half, y2 - py * half],
+          [x1 - px * half, y1 - py * half]
+        ];
+      }
+
+      function makeCanvasRenderer(targetCtx) {
+        return {
+          rect(x1, y1, x2, y2, width) {
+            const pts = rectangleCorners(x1, y1, x2, y2, width);
+            targetCtx.fillStyle = state.ink;
+            targetCtx.beginPath();
+            targetCtx.moveTo(pts[0][0], pts[0][1]);
+            targetCtx.lineTo(pts[1][0], pts[1][1]);
+            targetCtx.lineTo(pts[2][0], pts[2][1]);
+            targetCtx.lineTo(pts[3][0], pts[3][1]);
+            targetCtx.closePath();
+            targetCtx.fill();
+          }
+        };
+      }
+
+      function makeSvgRenderer(parts) {
+        return {
+          rect(x1, y1, x2, y2, width) {
+            const pts = rectangleCorners(x1, y1, x2, y2, width)
+              .map(([x, y]) => `${fmt(x)},${fmt(y)}`)
+              .join(' ');
+
+            parts.push(`<polygon points="${pts}" fill="${state.ink}" />`);
+          }
+        };
+      }
+
+      function firstWidth() {
+        return state.swapped ? state.thickThickness : state.thinThickness;
+      }
+
+      function secondWidth() {
+        return state.swapped ? state.thinThickness : state.thickThickness;
+      }
+
+      function resizeCanvas() {
+        const rect = wrap.getBoundingClientRect();
+        logicalWidth = Math.max(1, rect.width);
+        logicalHeight = Math.max(1, rect.height);
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+        canvas.width = Math.round(logicalWidth * dpr);
+        canvas.height = Math.round(logicalHeight * dpr);
+
+        render();
+      }
+
+      function updateSourcePanels() {
+        imagePanel.classList.toggle('active', state.sourceMode === 'image');
+        sketchPanel.classList.toggle('active', state.sourceMode === 'sketch');
+        audioPanel.classList.toggle('active', state.sourceMode === 'audio');
+      }
+
+      function updateUI() {
+        outputs.density.textContent = `${state.density} px`;
+        outputs.layers.textContent = state.layers;
+        outputs.displacement.textContent = `${state.displacement}%`;
+        outputs.thickThickness.textContent = `${state.thickThickness} px`;
+        outputs.thinThickness.textContent = `${state.thinThickness} px`;
+
+        controls.thickThickness.min = Math.max(2, state.thinThickness + 1);
+        controls.thinThickness.max = Math.max(1, state.thickThickness - 1);
+
+        sourceModeGroup.querySelectorAll('button[data-source]').forEach((button) => {
+          button.setAttribute('aria-pressed', button.dataset.source === state.sourceMode ? 'true' : 'false');
+        });
+
+        speedButtons.querySelectorAll('button[data-speed]').forEach((button) => {
+          button.setAttribute('aria-pressed', Number(button.dataset.speed) === state.animationSpeed ? 'true' : 'false');
+        });
+
+        animateBtn.setAttribute('aria-pressed', state.animating ? 'true' : 'false');
+        animateBtn.setAttribute('aria-label', state.animating ? 'Stop animation' : 'Play animation');
+        animateBtn.setAttribute('title', state.animating ? 'Stop animation' : 'Play animation');
+
+        recordBtn.textContent = audioIsRecording ? 'Stop recording' : 'Record';
+
+        const sourceLabelMap = {
+          none: 'Pattern',
+          image: 'Image Outline',
+          sketch: 'Sketch Outline',
+          audio: 'Audio Intersections'
+        };
+
+        const directionLabel = state.orientation[0].toUpperCase() + state.orientation.slice(1);
+        badge.textContent = `${directionLabel} · ${sourceLabelMap[state.sourceMode]}`;
+
+        fileName.textContent = uploadedFileName;
+
+        document.documentElement.style.setProperty('--bg', state.bg);
+        document.documentElement.style.setProperty('--ink', state.ink);
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', state.bg);
+
+        updateSourcePanels();
+      }
+
+      function lineStep() {
+        return Math.max(state.thickThickness, state.thinThickness) + state.density;
+      }
+
+      function staticLinearShift(step) {
+        return step * 0.22 * (state.displacement / 100);
+      }
+
+      function linearCrossPositions(crossSize) {
+        const step = lineStep();
+        const first = -2 * step;
+        const count = Math.ceil(crossSize / step) + 5;
+
+        return {
+          step,
+          positions: Array.from({ length: count }, (_, i) => first + i * step)
+        };
+      }
+
+      function groupSegments(totalLength) {
+        const margin = Math.max(34, totalLength * 0.075);
+        const available = Math.max(1, totalLength - 2 * margin);
+        const groupLength = available / state.layers;
+
+        return Array.from({ length: state.layers }, (_, index) => {
+          const start = margin + index * groupLength;
+          const middle = start + groupLength / 2;
+          const end = start + groupLength;
+
+          return { start, middle, end };
+        });
+      }
+
+      function wrapPeriodic(value, period) {
+        if (period <= 0) return 0;
+        return ((((value + period / 2) % period) + period) % period) - period / 2;
+      }
+
+      function sourceAvailable() {
+        if (state.sourceMode === 'image') return !!uploadedImage;
+        if (state.sourceMode === 'sketch') return true;
+        if (state.sourceMode === 'audio') return Array.isArray(audioSamples) && audioSamples.length > 0;
+        return false;
+      }
+
+      function pixelCoverage(r, g, b, a) {
+        const alpha = a / 255;
+        const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+        const darkCoverage = Math.max(0, 1 - luminance);
+
+        if (alpha < 0.995) return Math.max(alpha, darkCoverage);
+        return darkCoverage;
+      }
+
+      function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+      }
+
+      function smoothArray(values, radius = 3) {
+        const out = new Array(values.length).fill(0);
+        for (let i = 0; i < values.length; i++) {
+          let sum = 0;
+          let weight = 0;
+          for (let j = -radius; j <= radius; j++) {
+            const idx = clamp(i + j, 0, values.length - 1);
+            const w = radius + 1 - Math.abs(j);
+            sum += values[idx] * w;
+            weight += w;
+          }
+          out[i] = weight ? sum / weight : values[i];
+        }
+        return out;
+      }
+
+      function buildSourceRaster(size = 256) {
+        if (state.sourceMode !== 'image' && state.sourceMode !== 'sketch') return null;
+        if (state.sourceMode === 'image' && !uploadedImage) return null;
+
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = size;
+        tempCanvas.height = size;
+        const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
+
+        tempCtx.clearRect(0, 0, size, size);
+
+        if (state.sourceMode === 'image') {
+          const iw = uploadedImage.naturalWidth || uploadedImage.width;
+          const ih = uploadedImage.naturalHeight || uploadedImage.height;
+          const scale = Math.max(size / iw, size / ih);
+          const dw = iw * scale;
+          const dh = ih * scale;
+          const dx = (size - dw) / 2;
+          const dy = (size - dh) / 2;
+          tempCtx.drawImage(uploadedImage, dx, dy, dw, dh);
+        } else {
+          tempCtx.fillStyle = '#ffffff';
+          tempCtx.fillRect(0, 0, size, size);
+          tempCtx.drawImage(sketchCanvas, 0, 0, size, size);
+        }
+
+        const imageData = tempCtx.getImageData(0, 0, size, size);
+        const data = imageData.data;
+        const mask = new Uint8Array(size * size);
+
+        if (state.sourceMode === 'image') {
+          let hasTransparency = false;
+          for (let i = 3; i < data.length; i += 4) {
+            if (data[i] < 250) {
+              hasTransparency = true;
+              break;
+            }
+          }
+
+          let bgR = 255, bgG = 255, bgB = 255;
+
+          if (!hasTransparency) {
+            const sampleSize = Math.max(2, Math.floor(size * 0.03));
+            let r = 0, g = 0, b = 0, count = 0;
+
+            const sampleCorner = (sx, sy) => {
+              for (let y = sy; y < sy + sampleSize; y++) {
+                for (let x = sx; x < sx + sampleSize; x++) {
+                  const px = clamp(x, 0, size - 1);
+                  const py = clamp(y, 0, size - 1);
+                  const index = (py * size + px) * 4;
+                  r += data[index];
+                  g += data[index + 1];
+                  b += data[index + 2];
+                  count++;
+                }
+              }
+            };
+
+            sampleCorner(0, 0);
+            sampleCorner(size - sampleSize, 0);
+            sampleCorner(0, size - sampleSize);
+            sampleCorner(size - sampleSize, size - sampleSize);
+
+            if (count > 0) {
+              bgR = r / count;
+              bgG = g / count;
+              bgB = b / count;
+            }
+          }
+
+          for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+              const idx = (y * size + x) * 4;
+              let coverage = 0;
+
+              if (hasTransparency) {
+                coverage = data[idx + 3] / 255;
+              } else {
+                const dr = data[idx] - bgR;
+                const dg = data[idx + 1] - bgG;
+                const db = data[idx + 2] - bgB;
+                const distance = Math.sqrt(dr * dr + dg * dg + db * db) / 441.673;
+                const darkness = 1 - (
+                  0.2126 * data[idx] +
+                  0.7152 * data[idx + 1] +
+                  0.0722 * data[idx + 2]
+                ) / 255;
+                coverage = Math.max(distance, darkness * 0.65);
+              }
+
+              mask[y * size + x] = coverage > 0.08 ? 1 : 0;
+            }
+          }
+        } else {
+          for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+              const idx = (y * size + x) * 4;
+              const luminance = (
+                0.2126 * data[idx] +
+                0.7152 * data[idx + 1] +
+                0.0722 * data[idx + 2]
+              ) / 255;
+              const coverage = 1 - luminance;
+              mask[y * size + x] = coverage > 0.08 ? 1 : 0;
+            }
+          }
+        }
+
+        return { size, mask };
+      }
+
+      function buildImageOrSketchBoundaries(size = 256) {
+        const raster = buildSourceRaster(size);
+        if (!raster) return null;
+
+        const { mask } = raster;
+        const horizontal = new Array(size).fill(0.5);
+        const vertical = new Array(size).fill(0.5);
+        const radial = new Array(size).fill(0.5);
+
+        // Horizontal mode: for each row, use the first detected shape pixel from the left
+        // as the intersection position.
+        let lastH = 0.5;
+        for (let y = 0; y < size; y++) {
+          let found = -1;
+          for (let x = 0; x < size; x++) {
+            if (mask[y * size + x]) {
+              found = x;
+              break;
+            }
+          }
+          if (found >= 0) lastH = found / (size - 1);
+          horizontal[y] = lastH;
+        }
+
+        // Vertical mode: for each column, use the first detected shape pixel from the top.
+        let lastV = 0.5;
+        for (let x = 0; x < size; x++) {
+          let found = -1;
+          for (let y = 0; y < size; y++) {
+            if (mask[y * size + x]) {
+              found = y;
+              break;
+            }
+          }
+          if (found >= 0) lastV = found / (size - 1);
+          vertical[x] = lastV;
+        }
+
+        // Radial mode: detect the nearest occupied pixel from the centre along each angle.
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
+        const maxRadius = Math.min(cx, cy);
+        let lastR = 0.5;
+        for (let i = 0; i < size; i++) {
+          const angle = -Math.PI / 2 + (i / size) * TAU;
+          let foundNorm = null;
+
+          for (let r = 0; r <= maxRadius; r += 1) {
+            const x = Math.round(cx + Math.cos(angle) * r);
+            const y = Math.round(cy + Math.sin(angle) * r);
+            if (x >= 0 && x < size && y >= 0 && y < size && mask[y * size + x]) {
+              foundNorm = r / maxRadius;
+              break;
+            }
+          }
+
+          if (foundNorm !== null) lastR = foundNorm;
+          radial[i] = lastR;
+        }
+
+        return {
+          horizontal: smoothArray(horizontal, 5),
+          vertical: smoothArray(vertical, 5),
+          radial: smoothArray(radial, 5)
+        };
+      }
+
+      function buildAudioBoundaries(size = 256) {
+        if (!audioSamples || !audioSamples.length) return null;
+
+        const sampleAt = (t) => {
+          const idx = clamp(Math.round(t * (audioSamples.length - 1)), 0, audioSamples.length - 1);
+          return audioSamples[idx] || 0;
+        };
+
+        const horizontal = new Array(size).fill(0.5);
+        const vertical = new Array(size).fill(0.5);
+        const radial = new Array(size).fill(0.5);
+
+        for (let i = 0; i < size; i++) {
+          const t = size === 1 ? 0 : i / (size - 1);
+          const sample = sampleAt(t);
+
+          // Use a mild nonlinear boost so quieter details become more visible.
+          const enhanced = Math.sign(sample) * Math.pow(Math.abs(sample), 0.72);
+
+          const mappedLinear = clamp(0.5 + enhanced * 0.28, 0.08, 0.92);
+          horizontal[i] = mappedLinear;
+          vertical[i] = mappedLinear;
+
+          // Stronger contrast specifically for radial preview so the audio effect
+          // is easier to see in the circular form.
+          radial[i] = clamp(0.5 + enhanced * 0.40, 0.04, 0.96);
+        }
+
+        return {
+          horizontal: smoothArray(horizontal, 4),
+          vertical: smoothArray(vertical, 4),
+          radial: smoothArray(radial, 2)
+        };
+      }
+
+      function buildBoundaryMaps(size = 256) {
+        if (state.sourceMode === 'image' || state.sourceMode === 'sketch') {
+          return buildImageOrSketchBoundaries(size);
+        }
+        if (state.sourceMode === 'audio') {
+          return buildAudioBoundaries(size);
+        }
+        return null;
+      }
+
+      function sampleBoundaryValue(values, t, fallback = 0.5) {
+        if (!values || !values.length) return fallback;
+        const idx = clamp(Math.round(t * (values.length - 1)), 0, values.length - 1);
+        return clamp(values[idx], 0.05, 0.95);
+      }
+
+      function drawHorizontal(renderer, w, h) {
+        const { step, positions } = linearCrossPositions(h);
+        const groups = groupSegments(w);
+        const widthA = firstWidth();
+        const widthB = secondWidth();
+        const baseShift = staticLinearShift(step);
+        const travel = animationPhase * step;
+        const firstOffset = wrapPeriodic(-baseShift - travel, step);
+        const secondOffset = wrapPeriodic(baseShift + travel, step);
+        const boundaries = buildBoundaryMaps(256);
+
+        for (const y of positions) {
+          const yNorm = clamp(y / Math.max(h, 1), 0, 1);
+          const localBoundary = boundaries
+            ? sampleBoundaryValue(boundaries.horizontal, yNorm, 0.5)
+            : 0.5;
+
+          for (const group of groups) {
+            const groupLength = group.end - group.start;
+            const boundaryX = clamp(
+              group.start + groupLength * localBoundary,
+              group.start + 1,
+              group.end - 1
+            );
+
+            renderer.rect(group.start, y + firstOffset, boundaryX, y + firstOffset, widthA);
+            renderer.rect(boundaryX, y + secondOffset, group.end, y + secondOffset, widthB);
+          }
+        }
+      }
+
+      function drawVertical(renderer, w, h) {
+        const { step, positions } = linearCrossPositions(w);
+        const groups = groupSegments(h);
+        const widthA = firstWidth();
+        const widthB = secondWidth();
+        const baseShift = staticLinearShift(step);
+        const travel = animationPhase * step;
+        const firstOffset = wrapPeriodic(-baseShift - travel, step);
+        const secondOffset = wrapPeriodic(baseShift + travel, step);
+        const boundaries = buildBoundaryMaps(256);
+
+        for (const x of positions) {
+          const xNorm = clamp(x / Math.max(w, 1), 0, 1);
+          const localBoundary = boundaries
+            ? sampleBoundaryValue(boundaries.vertical, xNorm, 0.5)
+            : 0.5;
+
+          for (const group of groups) {
+            const groupLength = group.end - group.start;
+            const boundaryY = clamp(
+              group.start + groupLength * localBoundary,
+              group.start + 1,
+              group.end - 1
+            );
+
+            renderer.rect(x + firstOffset, group.start, x + firstOffset, boundaryY, widthA);
+            renderer.rect(x + secondOffset, boundaryY, x + secondOffset, group.end, widthB);
+          }
+        }
+      }
+
+      function polarPoint(cx, cy, radius, angle) {
+        return [cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius];
+      }
+
+      function drawRadial(renderer, w, h) {
+        const cx = w / 2;
+        const cy = h / 2;
+        const minDim = Math.min(w, h);
+        const innerRadius = minDim * 0.15;
+        const outerRadius = minDim * 0.44;
+        const totalSpan = Math.max(20, outerRadius - innerRadius);
+        const groupSpan = totalSpan / state.layers;
+        const firstMidRadius = innerRadius + groupSpan / 2;
+        const requiredArc = Math.max(state.thickThickness, state.thinThickness) + state.density;
+        const spokeCount = Math.max(6, Math.min(220, Math.floor((TAU * Math.max(firstMidRadius, 1)) / requiredArc)));
+        const angleStep = TAU / spokeCount;
+
+        const widthA = firstWidth();
+        const widthB = secondWidth();
+        const baseAngleShift = angleStep * 0.22 * (state.displacement / 100);
+        const travelAngle = animationPhase * angleStep;
+        const firstAngleOffset = wrapPeriodic(-baseAngleShift - travelAngle, angleStep);
+        const secondAngleOffset = wrapPeriodic(baseAngleShift + travelAngle, angleStep);
+        const boundaries = buildBoundaryMaps(256);
+
+        for (let groupIndex = 0; groupIndex < state.layers; groupIndex++) {
+          const groupInner = innerRadius + groupIndex * groupSpan;
+          const groupOuter = groupInner + groupSpan;
+
+          for (let i = 0; i < spokeCount; i++) {
+            const baseAngle = -Math.PI / 2 + i * angleStep;
+            const angleNorm = i / spokeCount;
+            const localBoundary = boundaries
+              ? sampleBoundaryValue(boundaries.radial, angleNorm, 0.5)
+              : 0.5;
+
+            const boundaryRadius = clamp(
+              groupInner + (groupOuter - groupInner) * localBoundary,
+              groupInner + 1,
+              groupOuter - 1
+            );
+
+            const firstAngle = baseAngle + firstAngleOffset;
+            const firstStart = polarPoint(cx, cy, groupInner, firstAngle);
+            const firstEnd = polarPoint(cx, cy, boundaryRadius, firstAngle);
+            renderer.rect(firstStart[0], firstStart[1], firstEnd[0], firstEnd[1], widthA);
+
+            const secondAngle = baseAngle + secondAngleOffset;
+            const secondStart = polarPoint(cx, cy, boundaryRadius, secondAngle);
+            const secondEnd = polarPoint(cx, cy, groupOuter, secondAngle);
+            renderer.rect(secondStart[0], secondStart[1], secondEnd[0], secondEnd[1], widthB);
+          }
+        }
+      }
+
+      function drawPattern(renderer, w, h) {
+        if (state.orientation === 'horizontal') drawHorizontal(renderer, w, h);
+        else if (state.orientation === 'vertical') drawVertical(renderer, w, h);
+        else drawRadial(renderer, w, h);
+      }
+
+      function render() {
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, logicalWidth, logicalHeight);
+        ctx.fillStyle = state.bg;
+        ctx.fillRect(0, 0, logicalWidth, logicalHeight);
+        drawPattern(makeCanvasRenderer(ctx), logicalWidth, logicalHeight);
+      }
+
+      function createSvg() {
+        const w = logicalWidth;
+        const h = logicalHeight;
+        const parts = [];
+        parts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${fmt(w)}" height="${fmt(h)}" viewBox="0 0 ${fmt(w)} ${fmt(h)}" shape-rendering="geometricPrecision">`);
+        parts.push(`<rect width="${fmt(w)}" height="${fmt(h)}" fill="${state.bg}" />`);
+        drawPattern(makeSvgRenderer(parts), w, h);
+        parts.push(`</svg>`);
+        return parts.join('\n');
+      }
+
+      function downloadBlob(filename, blob) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+
+      function stopAnimation({ keepCurrentFrame = false } = {}) {
+        if (animationFrameId !== null) {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+
+        state.animating = false;
+        lastAnimationTime = null;
+
+        if (!keepCurrentFrame) {
+          animationPhase = 0;
+          render();
+        }
+
+        updateUI();
+      }
+
+      function animationLoop(now) {
+        if (!state.animating) return;
+
+        if (lastAnimationTime === null) lastAnimationTime = now;
+
+        const deltaSeconds = Math.min(0.05, Math.max(0, (now - lastAnimationTime) / 1000));
+        lastAnimationTime = now;
+        animationPhase = (animationPhase + deltaSeconds * (state.animationSpeed * 0.28)) % 1;
+
+        render();
+        animationFrameId = requestAnimationFrame(animationLoop);
+      }
+
+      function startAnimation() {
+        if (state.animating) return;
+        state.animating = true;
+        lastAnimationTime = null;
+        updateUI();
+        animationFrameId = requestAnimationFrame(animationLoop);
+      }
+
+      function toggleAnimation() {
+        if (state.animating) stopAnimation({ keepCurrentFrame: false });
+        else startAnimation();
+      }
+
+      function initSketch() {
+        sketchCtx.fillStyle = '#ffffff';
+        sketchCtx.fillRect(0, 0, sketchCanvas.width, sketchCanvas.height);
+        sketchCtx.strokeStyle = '#000000';
+        sketchCtx.lineWidth = 8;
+        sketchCtx.lineCap = 'round';
+        sketchCtx.lineJoin = 'round';
+      }
+
+      function sketchPoint(event) {
+        const rect = sketchCanvas.getBoundingClientRect();
+        return {
+          x: (event.clientX - rect.left) * (sketchCanvas.width / rect.width),
+          y: (event.clientY - rect.top) * (sketchCanvas.height / rect.height)
+        };
+      }
+
+      function beginSketch(event) {
+        drawing = true;
+        state.sourceMode = 'sketch';
+        updateUI();
+
+        const p = sketchPoint(event);
+        lastX = p.x;
+        lastY = p.y;
+      }
+
+      function moveSketch(event) {
+        if (!drawing) return;
+        const p = sketchPoint(event);
+
+        sketchCtx.beginPath();
+        sketchCtx.moveTo(lastX, lastY);
+        sketchCtx.lineTo(p.x, p.y);
+        sketchCtx.stroke();
+
+        lastX = p.x;
+        lastY = p.y;
+        render();
+      }
+
+      function endSketch() {
+        drawing = false;
+      }
+
+      async function decodeAudioBlob(blob) {
+        const arrayBuffer = await blob.arrayBuffer();
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+        const channel = audioBuffer.getChannelData(0);
+        const sampleCount = 512;
+        const blockSize = Math.max(1, Math.floor(channel.length / sampleCount));
+        const samples = [];
+
+        for (let i = 0; i < sampleCount; i++) {
+          const start = i * blockSize;
+          const end = Math.min(channel.length, start + blockSize);
+          let sum = 0;
+          let count = 0;
+
+          for (let j = start; j < end; j++) {
+            sum += channel[j];
+            count++;
+          }
+
+          samples.push(count ? sum / count : 0);
+        }
+
+        let peak = 0;
+        for (const value of samples) {
+          peak = Math.max(peak, Math.abs(value));
+        }
+
+        audioSamples = peak > 0 ? samples.map((value) => value / peak) : samples;
+        audioStatus.textContent = `Audio recorded · ${audioSamples.length} samples`;
+        await audioContext.close();
+      }
+
+      function microphoneSupportMessage() {
+        if (!window.isSecureContext) {
+          return 'Microphone is blocked on file:// or non-HTTPS pages. Use GitHub Pages (HTTPS) or localhost.';
+        }
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          return 'This browser does not expose microphone recording here. Try Chrome, Edge, Safari, or Firefox on HTTPS.';
+        }
+
+        if (typeof MediaRecorder === 'undefined') {
+          return 'This browser does not support MediaRecorder. You can use “Upload audio file instead”.';
+        }
+
+        return 'Microphone permission will be requested when you press record. Audio now changes the thin/thick intersection across the default full pattern.';
+      }
+
+      async function refreshMicrophonePermissionStatus() {
+        audioStatus.textContent = microphoneSupportMessage();
+
+        if (
+          !window.isSecureContext ||
+          !navigator.permissions ||
+          !navigator.permissions.query
+        ) {
+          return;
+        }
+
+        try {
+          const permission = await navigator.permissions.query({ name: 'microphone' });
+
+          if (permission.state === 'granted') {
+            audioStatus.textContent = 'Microphone permission: allowed.';
+          } else if (permission.state === 'denied') {
+            audioStatus.textContent = 'Microphone permission is blocked in browser/site settings. Allow microphone access for this site and reload.';
+          } else {
+            audioStatus.textContent = 'Microphone permission: not decided yet. Press “Record” to show the browser permission prompt.';
+          }
+        } catch (error) {
+          // Safari and some browsers do not support querying microphone permission.
+        }
+      }
+
+      function chooseRecorderOptions() {
+        if (!MediaRecorder.isTypeSupported) return {};
+
+        const types = [
+          'audio/webm;codecs=opus',
+          'audio/webm',
+          'audio/mp4',
+          'audio/ogg;codecs=opus'
+        ];
+
+        for (const mimeType of types) {
+          if (MediaRecorder.isTypeSupported(mimeType)) {
+            return { mimeType };
+          }
+        }
+
+        return {};
+      }
+
+      async function processAudioBlob(blob) {
+        if (!blob || blob.size === 0) {
+          audioStatus.textContent = 'No audio was captured.';
+          return;
+        }
+
+        audioStatus.textContent = 'Processing audio...';
+
+        try {
+          await decodeAudioBlob(blob);
+          state.sourceMode = 'audio';
+          updateUI();
+          render();
+        } catch (error) {
+          console.error(error);
+          audioStatus.textContent = 'This browser could not decode that recording. Try “Upload audio file instead” with MP3, WAV, M4A, or another browser-supported audio file.';
+        }
+      }
+
+      async function toggleRecording() {
+        if (audioIsRecording && mediaRecorder) {
+          mediaRecorder.stop();
+          return;
+        }
+
+        if (!window.isSecureContext) {
+          audioStatus.textContent = 'Microphone permission requires HTTPS or localhost. When deployed on GitHub Pages, open the HTTPS GitHub Pages URL — not the downloaded HTML file.';
+          return;
+        }
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          audioStatus.textContent = 'Microphone recording is unavailable in this browser/context. Use the audio-file upload button instead.';
+          return;
+        }
+
+        if (typeof MediaRecorder === 'undefined') {
+          audioStatus.textContent = 'MediaRecorder is unavailable. Use the audio-file upload button instead.';
+          return;
+        }
+
+        try {
+          // Must run directly inside this click handler so the browser is allowed
+          // to display its microphone permission prompt.
+          audioStatus.textContent = 'Requesting microphone permission...';
+
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false
+            }
+          });
+
+          audioChunks = [];
+
+          const recorderOptions = chooseRecorderOptions();
+          mediaRecorder = new MediaRecorder(mediaStream, recorderOptions);
+
+          mediaRecorder.addEventListener('dataavailable', (event) => {
+            if (event.data && event.data.size > 0) {
+              audioChunks.push(event.data);
+            }
+          });
+
+          mediaRecorder.addEventListener('stop', async () => {
+            audioIsRecording = false;
+
+            const mimeType =
+              mediaRecorder.mimeType ||
+              recorderOptions.mimeType ||
+              'audio/webm';
+
+            const blob = new Blob(audioChunks, { type: mimeType });
+
+            if (mediaStream) {
+              mediaStream.getTracks().forEach((track) => track.stop());
+            }
+
+            mediaStream = null;
+            updateUI();
+            await processAudioBlob(blob);
+          });
+
+          mediaRecorder.start(250);
+          audioIsRecording = true;
+          state.sourceMode = 'audio';
+          audioStatus.textContent = 'Recording… press Stop when finished.';
+          updateUI();
+        } catch (error) {
+          console.error(error);
+
+          audioIsRecording = false;
+
+          if (mediaStream) {
+            mediaStream.getTracks().forEach((track) => track.stop());
+            mediaStream = null;
+          }
+
+          if (
+            error &&
+            (error.name === 'NotAllowedError' || error.name === 'SecurityError')
+          ) {
+            audioStatus.textContent = 'Microphone access was blocked. Use the lock/site-settings icon in the browser address bar, set Microphone to Allow, then reload this page.';
+          } else if (error && error.name === 'NotFoundError') {
+            audioStatus.textContent = 'No microphone was found on this device.';
+          } else {
+            audioStatus.textContent = `Could not start microphone: ${error && error.message ? error.message : 'unknown browser error'}`;
+          }
+
+          updateUI();
+        }
+      }
+
+      function clearAudio() {
+        audioSamples = null;
+        audioStatus.textContent = microphoneSupportMessage();
+        render();
+      }
+
+      function loadUploadedImage(file) {
+        const reader = new FileReader();
+
+        reader.onload = () => {
+          const img = new Image();
+
+          img.onload = () => {
+            uploadedImage = img;
+            uploadedFileName = file.name;
+            state.sourceMode = 'image';
+            updateUI();
+            render();
+          };
+
+          img.src = reader.result;
+        };
+
+        reader.readAsDataURL(file);
+      }
+
+      controls.density.addEventListener('input', (event) => {
+        state.density = Number(event.target.value);
+        updateUI();
+        render();
+      });
+
+      controls.layers.addEventListener('input', (event) => {
+        state.layers = Number(event.target.value);
+        updateUI();
+        render();
+      });
+
+      controls.displacement.addEventListener('input', (event) => {
+        state.displacement = Number(event.target.value);
+        updateUI();
+        render();
+      });
+
+      controls.thickThickness.addEventListener('input', (event) => {
+        state.thickThickness = Math.max(Number(event.target.value), state.thinThickness + 1);
+        event.target.value = state.thickThickness;
+        updateUI();
+        render();
+      });
+
+      controls.thinThickness.addEventListener('input', (event) => {
+        state.thinThickness = Math.min(Number(event.target.value), state.thickThickness - 1);
+        event.target.value = state.thinThickness;
+        updateUI();
+        render();
+      });
+
+      sourceModeGroup.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-source]');
+        if (!button) return;
+
+        state.sourceMode = button.dataset.source;
+        updateUI();
+        render();
+      });
+
+      uploadBtn.addEventListener('click', () => fileInput.click());
+
+      fileInput.addEventListener('change', (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+        loadUploadedImage(file);
+      });
+
+      clearSketchBtn.addEventListener('click', () => {
+        initSketch();
+        state.sourceMode = 'sketch';
+        updateUI();
+        render();
+      });
+
+      sketchCanvas.addEventListener('pointerdown', (event) => {
+        sketchCanvas.setPointerCapture(event.pointerId);
+        beginSketch(event);
+      });
+      sketchCanvas.addEventListener('pointermove', moveSketch);
+      sketchCanvas.addEventListener('pointerup', endSketch);
+      sketchCanvas.addEventListener('pointercancel', endSketch);
+      sketchCanvas.addEventListener('pointerleave', endSketch);
+
+      document.getElementById('swapBtn').addEventListener('click', () => {
+        state.swapped = !state.swapped;
+        updateUI();
+        render();
+      });
+
+      speedButtons.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-speed]');
+        if (!button) return;
+
+        state.animationSpeed = Number(button.dataset.speed);
+        updateUI();
+      });
+
+      animateBtn.addEventListener('click', toggleAnimation);
+      recordBtn.addEventListener('click', toggleRecording);
+
+      uploadAudioBtn.addEventListener('click', () => {
+        audioFileInput.click();
+      });
+
+      audioFileInput.addEventListener('change', async (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+
+        state.sourceMode = 'audio';
+        updateUI();
+        await processAudioBlob(file);
+      });
+
+      clearAudioBtn.addEventListener('click', clearAudio);
+
+      document.getElementById('orientation').addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-mode]');
+        if (!button) return;
+
+        state.orientation = button.dataset.mode;
+        document.querySelectorAll('#orientation button').forEach((item) => {
+          item.setAttribute('aria-pressed', item === button ? 'true' : 'false');
+        });
+
+        updateUI();
+        render();
+      });
+
+      document.getElementById('palettes').addEventListener('click', (event) => {
+        const button = event.target.closest('.palette');
+        if (!button) return;
+
+        state.bg = button.dataset.bg;
+        state.ink = button.dataset.ink;
+
+        document.querySelectorAll('.palette').forEach((item) => {
+          item.setAttribute('aria-pressed', item === button ? 'true' : 'false');
+        });
+
+        updateUI();
+        render();
+      });
+
+      document.getElementById('resetBtn').addEventListener('click', () => {
+        if (animationFrameId !== null) {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+
+        Object.assign(state, defaults);
+        animationPhase = 0;
+        lastAnimationTime = null;
+        uploadedImage = null;
+        uploadedFileName = 'No image selected';
+        fileInput.value = '';
+        audioSamples = null;
+        audioFileInput.value = '';
+        audioStatus.textContent = microphoneSupportMessage();
+        audioIsRecording = false;
+
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+        if (mediaStream) {
+          mediaStream.getTracks().forEach((track) => track.stop());
+          mediaStream = null;
+        }
+
+        for (const [key, control] of Object.entries(controls)) {
+          control.value = state[key];
+        }
+
+        initSketch();
+
+        document.querySelectorAll('#orientation button').forEach((item) => {
+          item.setAttribute('aria-pressed', item.dataset.mode === state.orientation ? 'true' : 'false');
+        });
+
+        document.querySelectorAll('.palette').forEach((item) => {
+          item.setAttribute(
+            'aria-pressed',
+            item.dataset.bg === state.bg && item.dataset.ink === state.ink ? 'true' : 'false'
+          );
+        });
+
+        updateUI();
+        render();
+      });
+
+      document.getElementById('downloadPngBtn').addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.download = `cda-graphic-${state.orientation}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+
+      document.getElementById('downloadSvgBtn').addEventListener('click', () => {
+        const svg = createSvg();
+        const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+        downloadBlob(`cda-graphic-${state.orientation}.svg`, blob);
+      });
+
+      new ResizeObserver(resizeCanvas).observe(wrap);
+
+      initSketch();
+      updateUI();
+      refreshMicrophonePermissionStatus();
+      resizeCanvas();
+    })();
+  </script>
+</body>
+</html>
