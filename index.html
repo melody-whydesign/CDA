@@ -1594,7 +1594,28 @@
         return { size, mask };
       }
 
-      function wrapTextParagraph(tempCtx, paragraph, maxWidth) {
+      function textLetterCount(value) {
+        return String(value || '').replace(/\s+/g, '').length;
+      }
+
+      function breakWordByLetterLimit(word, maxLetters = 12) {
+        const chunks = [];
+        let current = '';
+
+        for (const char of String(word || '')) {
+          if (textLetterCount(current + char) > maxLetters && current) {
+            chunks.push(current);
+            current = char;
+          } else {
+            current += char;
+          }
+        }
+
+        if (current) chunks.push(current);
+        return chunks;
+      }
+
+      function wrapTextParagraph(tempCtx, paragraph, maxWidth, maxLetters = 12) {
         const value = String(paragraph || '').trim();
 
         if (!value) {
@@ -1603,61 +1624,43 @@
 
         const words = value.split(/\s+/).filter(Boolean);
         const wrapped = [];
-
-        const pushBrokenWord = (word) => {
-          let chunk = '';
-
-          for (const char of word) {
-            const candidate = chunk + char;
-
-            if (
-              chunk &&
-              tempCtx.measureText(candidate).width > maxWidth
-            ) {
-              wrapped.push(chunk);
-              chunk = char;
-            } else {
-              chunk = candidate;
-            }
-          }
-
-          if (chunk) {
-            wrapped.push(chunk);
-          }
-        };
-
         let current = '';
 
         for (const word of words) {
-          const candidate = current ? `${current} ${word}` : word;
+          const wordLetterCount = textLetterCount(word);
 
-          if (
-            tempCtx.measureText(candidate).width <= maxWidth
-          ) {
-            current = candidate;
+          if (wordLetterCount > maxLetters) {
+            if (current) {
+              wrapped.push(current);
+              current = '';
+            }
+
+            const chunks = breakWordByLetterLimit(word, maxLetters);
+            chunks.forEach((chunk, index) => {
+              if (index === chunks.length - 1 && textLetterCount(chunk) < maxLetters) {
+                current = chunk;
+              } else {
+                wrapped.push(chunk);
+              }
+            });
             continue;
           }
 
-          if (current) {
-            wrapped.push(current);
-            current = '';
-          }
+          const candidate = current ? `${current} ${word}` : word;
 
-          if (tempCtx.measureText(word).width <= maxWidth) {
-            current = word;
+          if (textLetterCount(candidate) <= maxLetters) {
+            current = candidate;
           } else {
-            pushBrokenWord(word);
+            if (current) wrapped.push(current);
+            current = word;
           }
         }
 
-        if (current) {
-          wrapped.push(current);
-        }
-
+        if (current) wrapped.push(current);
         return wrapped;
       }
 
-      function wrapTextBlock(tempCtx, text, maxWidth) {
+      function wrapTextBlock(tempCtx, text, maxWidth, maxLetters = 12) {
         const rawLines = String(text || '')
           .split(/\n/)
           .map((line) => line.trim());
@@ -1666,19 +1669,11 @@
 
         rawLines.forEach((line, index) => {
           if (!line) {
-            if (wrapped.length) {
-              wrapped.push('');
-            }
+            if (wrapped.length) wrapped.push('');
             return;
           }
 
-          const paragraphLines = wrapTextParagraph(
-            tempCtx,
-            line,
-            maxWidth
-          );
-
-          wrapped.push(...paragraphLines);
+          wrapped.push(...wrapTextParagraph(tempCtx, line, maxWidth, maxLetters));
 
           if (index < rawLines.length - 1) {
             wrapped.push('');
@@ -1710,19 +1705,18 @@
           mapHeight * (0.28 + densityBoost * 0.22)
         );
 
-        fontSize = Math.max(14, fontSize);
+        fontSize = Math.max(10, fontSize);
 
-        let wrappedLines = [];
+        let wrappedLines = wrapTextBlock(
+          tempCtx,
+          value,
+          availableWidth,
+          12
+        );
 
         for (let safety = 0; safety < 140; safety++) {
           tempCtx.font =
             `700 ${fontSize}px "Cormorant Garamond", "Bodoni Moda", Georgia, serif`;
-
-          wrappedLines = wrapTextBlock(
-            tempCtx,
-            value,
-            availableWidth
-          );
 
           const visibleLineCount = Math.max(
             1,
@@ -1751,11 +1745,11 @@
           }
 
           fontSize = Math.max(
-            12,
+            9,
             fontSize - 2
           );
 
-          if (fontSize <= 12) {
+          if (fontSize <= 9) {
             break;
           }
         }
